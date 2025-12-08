@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 
 /**
  * Stripe Webhook Endpoint - Next.js App Router
@@ -36,6 +37,50 @@ async function handleWebhookEvent(event: Stripe.Event) {
         subscription: session.subscription,
         metadata: session.metadata,
       })
+
+      // Handle subscription checkout completion
+      if (session.mode === 'subscription' && session.subscription) {
+        const stripe = getStripeInstance()
+        const supabase = createServiceRoleClient()
+
+        // Retrieve full subscription object
+        const subscription = await stripe.subscriptions.retrieve(
+          session.subscription as string
+        )
+
+        // Retrieve customer to get org_id from metadata
+        const customer = await stripe.customers.retrieve(session.customer as string) as Stripe.Customer
+
+        const orgId = customer.metadata?.org_id
+
+        if (!orgId) {
+          console.error('No org_id found in customer metadata')
+          break
+        }
+
+        // Insert subscription record into database
+        const { error: insertError } = await supabase
+          .from('subscriptions')
+          .insert({
+            org_id: orgId,
+            stripe_subscription_id: subscription.id,
+            stripe_customer_id: customer.id,
+            stripe_price_id: subscription.items.data[0].price.id,
+            status: subscription.status,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            canceled_at: subscription.canceled_at
+              ? new Date(subscription.canceled_at * 1000).toISOString()
+              : null,
+          })
+
+        if (insertError) {
+          console.error('Error inserting subscription:', insertError)
+        } else {
+          console.log('✓ Subscription saved to database:', subscription.id)
+        }
+      }
       break
     }
 
@@ -72,6 +117,27 @@ async function handleWebhookEvent(event: Stripe.Event) {
         status: subscription.status,
         metadata: subscription.metadata,
       })
+
+      // Update subscription in database
+      const supabase = createServiceRoleClient()
+      const { error: updateError } = await supabase
+        .from('subscriptions')
+        .update({
+          status: subscription.status,
+          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          canceled_at: subscription.canceled_at
+            ? new Date(subscription.canceled_at * 1000).toISOString()
+            : null,
+        })
+        .eq('stripe_subscription_id', subscription.id)
+
+      if (updateError) {
+        console.error('Error updating subscription:', updateError)
+      } else {
+        console.log('✓ Subscription updated in database:', subscription.id)
+      }
       break
     }
 
@@ -83,6 +149,19 @@ async function handleWebhookEvent(event: Stripe.Event) {
         status: subscription.status,
         metadata: subscription.metadata,
       })
+
+      // Delete subscription from database
+      const supabase = createServiceRoleClient()
+      const { error: deleteError } = await supabase
+        .from('subscriptions')
+        .delete()
+        .eq('stripe_subscription_id', subscription.id)
+
+      if (deleteError) {
+        console.error('Error deleting subscription:', deleteError)
+      } else {
+        console.log('✓ Subscription deleted from database:', subscription.id)
+      }
       break
     }
 
