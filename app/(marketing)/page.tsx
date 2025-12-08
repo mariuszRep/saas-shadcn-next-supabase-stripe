@@ -139,6 +139,14 @@ export default function Home() {
                     <Link href="/docs">Docs</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className={navigationMenuTriggerStyle()}
+                  >
+                    <Link href="/pricing">Pricing</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
                 <NavigationMenuItem className="hidden md:block">
                   <NavigationMenuTrigger>List</NavigationMenuTrigger>
                   <NavigationMenuContent>

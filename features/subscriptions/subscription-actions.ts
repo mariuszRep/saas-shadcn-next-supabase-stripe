@@ -109,3 +109,54 @@ export async function createCustomerPortalSession() {
 
   return { error: 'No portal URL returned' }
 }
+
+/**
+ * Create a Stripe Subscription Checkout Session with custom price ID
+ * Used by the pricing page to allow plan selection
+ */
+export async function createSubscriptionCheckoutWithPrice(priceId: string) {
+  // Get authenticated user
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { error: 'You must be logged in to create a subscription' }
+  }
+
+  // Get user's organizations
+  const orgService = new OrganizationService(supabase)
+  const organizations = await orgService.getUserOrganizations()
+
+  if (organizations.length === 0) {
+    return { error: 'You must have an organization to create a subscription' }
+  }
+
+  // Use the first organization
+  const organization = organizations[0]
+
+  // Validate price ID is provided
+  if (!priceId || priceId === '') {
+    return { error: 'Invalid price ID. Please configure Stripe products first.' }
+  }
+
+  const result = await createSubscriptionCheckoutSession({
+    priceId,
+    orgId: organization.id,
+    orgName: organization.name,
+    userEmail: user.email || '',
+  })
+
+  if (result.error) {
+    return { error: result.error }
+  }
+
+  if (result.url) {
+    // redirect() throws NEXT_REDIRECT - let it propagate naturally
+    redirect(result.url)
+  }
+
+  return { error: 'No checkout URL returned' }
+}
