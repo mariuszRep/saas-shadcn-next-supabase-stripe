@@ -151,3 +151,93 @@ export async function createCustomerPortalSession(
     return { error: `Failed to create customer portal session: ${message}` }
   }
 }
+
+export interface SubscriptionData {
+  id: string
+  org_id: string
+  stripe_subscription_id: string
+  stripe_customer_id: string
+  stripe_price_id: string
+  status: string
+  current_period_start: string
+  current_period_end: string
+  cancel_at_period_end: boolean
+  canceled_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * Get subscription by organization ID
+ * Uses service role client to bypass RLS for middleware access control
+ */
+export async function getSubscriptionByOrgId(
+  orgId: string
+): Promise<SubscriptionData | null> {
+  try {
+    const supabase = createServiceRoleClient()
+
+    const { data: subscription, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('org_id', orgId)
+      .single()
+
+    if (error || !subscription) {
+      return null
+    }
+
+    return subscription as SubscriptionData
+  } catch (error) {
+    console.error('Error fetching subscription:', error)
+    return null
+  }
+}
+
+/**
+ * Check if organization has active subscription
+ * Includes grace period logic for past_due subscriptions
+ * @param orgId - Organization ID
+ * @param gracePeriodDays - Number of days to allow past_due subscriptions (default: 3)
+ */
+export async function hasActiveSubscription(
+  orgId: string,
+  gracePeriodDays: number = 3
+): Promise<boolean> {
+  const subscription = await getSubscriptionByOrgId(orgId)
+
+  if (!subscription) {
+    return false
+  }
+
+  const now = Date.now()
+  const currentPeriodEnd = new Date(subscription.current_period_end).getTime()
+  const gracePeriodMs = gracePeriodDays * 24 * 60 * 60 * 1000
+
+  // Allow if status is active
+  if (subscription.status === 'active') {
+    return true
+  }
+
+  // Allow if status is trialing
+  if (subscription.status === 'trialing') {
+    return true
+  }
+
+  // Allow if canceled but still within current period
+  if (subscription.status === 'canceled' && currentPeriodEnd > now) {
+    return true
+  }
+
+  // Allow if past_due within grace period
+  if (subscription.status === 'past_due') {
+    const updatedAt = new Date(subscription.updated_at).getTime()
+    const timeSinceUpdate = now - updatedAt
+
+    if (timeSinceUpdate < gracePeriodMs) {
+      return true
+    }
+  }
+
+  return false
+}
