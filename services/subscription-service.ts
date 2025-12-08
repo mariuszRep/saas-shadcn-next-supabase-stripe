@@ -1,9 +1,11 @@
 import Stripe from 'stripe'
 import { CheckoutSessionResult } from './payment-service'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 
 /**
  * Subscription Service - Business logic layer for Stripe subscriptions
  * Handles subscription checkout session creation with organization linking
+ * and Customer Portal session management
  */
 
 /**
@@ -101,5 +103,51 @@ export async function createSubscriptionCheckoutSession(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     return { error: `Failed to create subscription checkout session: ${message}` }
+  }
+}
+
+export interface CustomerPortalParams {
+  orgId: string
+  returnUrl: string
+}
+
+/**
+ * Create a Stripe Customer Portal Session for subscription management
+ * Retrieves the Stripe customer_id from subscriptions table and creates portal session
+ */
+export async function createCustomerPortalSession(
+  params: CustomerPortalParams
+): Promise<CheckoutSessionResult> {
+  try {
+    const stripe = getStripeInstance()
+    const supabase = createServiceRoleClient()
+
+    // Query subscriptions table for stripe_customer_id by org_id
+    const { data: subscription, error: queryError } = await supabase
+      .from('subscriptions')
+      .select('stripe_customer_id, status')
+      .eq('org_id', params.orgId)
+      .single()
+
+    if (queryError || !subscription) {
+      return {
+        error: 'No active subscription found. Please create a subscription first.'
+      }
+    }
+
+    // Create Customer Portal session
+    const session = await stripe.billingPortal.sessions.create({
+      customer: subscription.stripe_customer_id,
+      return_url: params.returnUrl,
+    })
+
+    if (!session.url) {
+      return { error: 'Failed to create portal session URL' }
+    }
+
+    return { url: session.url }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return { error: `Failed to create customer portal session: ${message}` }
   }
 }

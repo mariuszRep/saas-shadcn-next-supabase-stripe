@@ -40,46 +40,76 @@ async function handleWebhookEvent(event: Stripe.Event) {
 
       // Handle subscription checkout completion
       if (session.mode === 'subscription' && session.subscription) {
-        const stripe = getStripeInstance()
-        const supabase = createServiceRoleClient()
+        try {
+          console.log('🔄 Processing subscription checkout...')
+          const stripe = getStripeInstance()
+          const supabase = createServiceRoleClient()
 
-        // Retrieve full subscription object
-        const subscription = await stripe.subscriptions.retrieve(
-          session.subscription as string
-        )
+          // Retrieve full subscription object with all fields
+          console.log('📥 Retrieving subscription:', session.subscription)
+          const subscription = await stripe.subscriptions.retrieve(
+            session.subscription as string,
+            {
+              expand: ['default_payment_method']
+            }
+          )
 
-        // Retrieve customer to get org_id from metadata
-        const customer = await stripe.customers.retrieve(session.customer as string) as Stripe.Customer
+          console.log('📋 Full subscription object:', JSON.stringify(subscription, null, 2))
 
-        const orgId = customer.metadata?.org_id
+          // Get org_id from subscription metadata (more reliable than customer metadata)
+          const orgId = subscription.metadata?.org_id
+          console.log('🔍 Found org_id in subscription metadata:', orgId)
 
-        if (!orgId) {
-          console.error('No org_id found in customer metadata')
-          break
-        }
+          if (!orgId) {
+            console.error('❌ No org_id found in subscription metadata:', subscription.metadata)
+            break
+          }
 
-        // Insert subscription record into database
-        const { error: insertError } = await supabase
-          .from('subscriptions')
-          .insert({
-            org_id: orgId,
-            stripe_subscription_id: subscription.id,
-            stripe_customer_id: customer.id,
-            stripe_price_id: subscription.items.data[0].price.id,
-            status: subscription.status,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          // Retrieve customer for customer_id
+          console.log('📥 Retrieving customer:', session.customer)
+          const customer = await stripe.customers.retrieve(session.customer as string) as Stripe.Customer
+
+          // Insert subscription record into database
+          console.log('💾 Inserting subscription into database...')
+
+          // Get period timestamps from subscription item
+          const subscriptionItem = subscription.items.data[0]
+          const currentPeriodStart = subscriptionItem.current_period_start
+          const currentPeriodEnd = subscriptionItem.current_period_end
+
+          console.log('📊 Subscription data:', {
+            current_period_start: currentPeriodStart,
+            current_period_end: currentPeriodEnd,
             cancel_at_period_end: subscription.cancel_at_period_end,
             canceled_at: subscription.canceled_at
-              ? new Date(subscription.canceled_at * 1000).toISOString()
-              : null,
           })
 
-        if (insertError) {
-          console.error('Error inserting subscription:', insertError)
-        } else {
-          console.log('✓ Subscription saved to database:', subscription.id)
+          const { error: insertError } = await supabase
+            .from('subscriptions')
+            .insert({
+              org_id: orgId,
+              stripe_subscription_id: subscription.id,
+              stripe_customer_id: customer.id,
+              stripe_price_id: subscription.items.data[0].price.id,
+              status: subscription.status,
+              current_period_start: new Date(currentPeriodStart * 1000).toISOString(),
+              current_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
+              cancel_at_period_end: subscription.cancel_at_period_end || false,
+              canceled_at: subscription.canceled_at
+                ? new Date(subscription.canceled_at * 1000).toISOString()
+                : null,
+            })
+
+          if (insertError) {
+            console.error('❌ Error inserting subscription:', insertError)
+          } else {
+            console.log('✓ Subscription saved to database:', subscription.id)
+          }
+        } catch (error) {
+          console.error('❌ Error processing subscription checkout:', error)
         }
+      } else {
+        console.log('⏭️  Skipping - not a subscription checkout or no subscription ID')
       }
       break
     }
@@ -115,8 +145,20 @@ async function handleWebhookEvent(event: Stripe.Event) {
         subscriptionId: subscription.id,
         customer: subscription.customer,
         status: subscription.status,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        canceled_at: subscription.canceled_at,
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         metadata: subscription.metadata,
       })
+
+      // Log cancellation explicitly
+      if (subscription.cancel_at_period_end) {
+        console.log('⚠️  SUBSCRIPTION SCHEDULED FOR CANCELLATION:', {
+          subscriptionId: subscription.id,
+          willCancelAt: new Date(subscription.current_period_end * 1000).toISOString(),
+          daysRemaining: Math.ceil((subscription.current_period_end * 1000 - Date.now()) / (1000 * 60 * 60 * 24))
+        })
+      }
 
       // Update subscription in database
       const supabase = createServiceRoleClient()

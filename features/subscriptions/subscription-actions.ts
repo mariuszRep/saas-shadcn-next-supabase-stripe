@@ -3,7 +3,10 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { OrganizationService } from '@/services/organization-service'
-import { createSubscriptionCheckoutSession } from '@/services/subscription-service'
+import {
+  createSubscriptionCheckoutSession,
+  createCustomerPortalSession as createPortalSession
+} from '@/services/subscription-service'
 
 /**
  * Subscription Actions - Next.js Server Actions
@@ -57,4 +60,52 @@ export async function createTestSubscriptionCheckout() {
   }
 
   return { error: 'No checkout URL returned' }
+}
+
+/**
+ * Create a Stripe Customer Portal Session for subscription management
+ * Retrieves customer from subscriptions table and redirects to portal
+ */
+export async function createCustomerPortalSession() {
+  // Get authenticated user
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { error: 'You must be logged in to access the customer portal' }
+  }
+
+  // Get user's organizations
+  const orgService = new OrganizationService(supabase)
+  const organizations = await orgService.getUserOrganizations()
+
+  if (organizations.length === 0) {
+    return { error: 'You must have an organization to access the portal' }
+  }
+
+  // Use the first organization
+  const organization = organizations[0]
+
+  // Set return URL (for now, back to test page - will be billing settings in production)
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const returnUrl = `${baseUrl}/subscription/test`
+
+  const result = await createPortalSession({
+    orgId: organization.id,
+    returnUrl,
+  })
+
+  if (result.error) {
+    return { error: result.error }
+  }
+
+  if (result.url) {
+    // redirect() throws NEXT_REDIRECT - let it propagate naturally
+    redirect(result.url)
+  }
+
+  return { error: 'No portal URL returned' }
 }
