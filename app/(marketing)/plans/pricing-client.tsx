@@ -34,9 +34,11 @@ export function PricingClient({ monthlyPlans, annualPlans }: PricingClientProps)
 
       {/* Pricing Cards */}
       {currentPlans.length > 0 ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <div className="flex flex-wrap justify-center gap-8 max-w-7xl mx-auto">
           {currentPlans.map((plan) => (
-            <PricingCard key={plan.priceId} plan={plan} />
+            <div key={plan.priceId} className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)] flex">
+              <PricingCard plan={plan} className="w-full" />
+            </div>
           ))}
         </div>
       ) : (

@@ -18,6 +18,7 @@ import { createSubscriptionCheckoutWithPrice } from '../subscription-actions'
 interface PricingCardProps {
   plan: PricingPlan
   currentPlanId?: string
+  className?: string
 }
 
 /**
@@ -25,7 +26,7 @@ interface PricingCardProps {
  * Displays subscription plan details with features and subscribe button
  * Uses shadcn/ui Card primitives for consistent styling
  */
-export function PricingCard({ plan, currentPlanId }: PricingCardProps) {
+export function PricingCard({ plan, currentPlanId, className }: PricingCardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const isCurrentPlan = currentPlanId === plan.id
@@ -50,8 +51,14 @@ export function PricingCard({ plan, currentPlanId }: PricingCardProps) {
     }
   }
 
+  const cardClasses = [
+    'h-full flex flex-col',
+    plan.highlighted ? 'border-primary shadow-lg relative' : '',
+    className,
+  ].filter(Boolean).join(' ')
+
   return (
-    <Card className={plan.highlighted ? 'border-primary shadow-lg relative' : ''}>
+    <Card className={cardClasses}>
       {plan.highlighted && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <Badge className="bg-primary">Most Popular</Badge>
@@ -63,7 +70,7 @@ export function PricingCard({ plan, currentPlanId }: PricingCardProps) {
         <CardDescription>{plan.description}</CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 flex-1">
         {/* Price */}
         <div className="space-y-2">
           <div className="flex items-baseline gap-1">

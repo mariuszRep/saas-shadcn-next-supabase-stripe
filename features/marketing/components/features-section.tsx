@@ -54,8 +54,8 @@ const features = [
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="px-4 py-16 sm:py-24">
-      <div className="container mx-auto">
+    <section id="features" className="scroll-mt-16 py-16 sm:py-24">
+      <div className="container mx-auto px-4">
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Everything You Need to Launch

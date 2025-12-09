@@ -23,7 +23,7 @@ export function HeroSection() {
   }, [])
 
   return (
-    <section className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-16">
+    <section id="hero" className="relative flex min-h-screen items-center justify-center overflow-hidden py-16">
       {/* Spotlight Gradient Background */}
       <div
         ref={containerRef}
@@ -69,7 +69,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      <div className="container relative z-10 mx-auto max-w-4xl text-center">
+      <div className="container relative z-10 mx-auto px-4 max-w-4xl text-center">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
           Build Your SaaS Faster with Next.js, Supabase & Stripe
         </h1>
@@ -82,9 +82,7 @@ export function HeroSection() {
             <Link href="/signup">Get Started</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
-            <Link href="#plans" scroll={false}>
-              View Plans
-            </Link>
+            <a href="#plans">View Plans</a>
           </Button>
         </div>
       </div>
