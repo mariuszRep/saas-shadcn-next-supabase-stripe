@@ -89,6 +89,63 @@ export type Database = {
           },
         ]
       }
+      onboarding_progress: {
+        Row: {
+          created_at: string
+          email_verified: boolean
+          id: string
+          organization_id: string | null
+          payment_completed: boolean
+          selected_plan_id: string | null
+          selected_plan_interval: string | null
+          selected_plan_name: string | null
+          updated_at: string
+          user_id: string
+          wizard_step: number
+        }
+        Insert: {
+          created_at?: string
+          email_verified?: boolean
+          id?: string
+          organization_id?: string | null
+          payment_completed?: boolean
+          selected_plan_id?: string | null
+          selected_plan_interval?: string | null
+          selected_plan_name?: string | null
+          updated_at?: string
+          user_id: string
+          wizard_step?: number
+        }
+        Update: {
+          created_at?: string
+          email_verified?: boolean
+          id?: string
+          organization_id?: string | null
+          payment_completed?: boolean
+          selected_plan_id?: string | null
+          selected_plan_interval?: string | null
+          selected_plan_name?: string | null
+          updated_at?: string
+          user_id?: string
+          wizard_step?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_progress_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -318,6 +375,79 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          id: string
+          org_id: string
+          stripe_subscription_id: string
+          stripe_customer_id: string
+          stripe_price_id: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          current_period_start: string
+          current_period_end: string
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          stripe_subscription_id: string
+          stripe_customer_id: string
+          stripe_price_id: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          current_period_start: string
+          current_period_end: string
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          stripe_subscription_id?: string
+          stripe_customer_id?: string
+          stripe_price_id?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          current_period_start?: string
+          current_period_end?: string
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       users: {
@@ -415,6 +545,7 @@ export type Database = {
     }
     Enums: {
       invitation_status: "pending" | "accepted" | "expired"
+      subscription_status: "active" | "canceled" | "incomplete" | "incomplete_expired" | "past_due" | "trialing" | "unpaid" | "paused"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -546,6 +677,7 @@ export const Constants = {
   public: {
     Enums: {
       invitation_status: ["pending", "accepted", "expired"],
+      subscription_status: ["active", "canceled", "incomplete", "incomplete_expired", "past_due", "trialing", "unpaid", "paused"],
     },
   },
 } as const
@@ -556,9 +688,12 @@ export type Workspace = Database["public"]["Tables"]["workspaces"]["Row"]
 export type Permission = Database["public"]["Tables"]["permissions"]["Row"]
 export type Role = Database["public"]["Tables"]["roles"]["Row"]
 export type Invitation = Database["public"]["Tables"]["invitations"]["Row"]
+export type OnboardingProgress = Database["public"]["Tables"]["onboarding_progress"]["Row"]
+export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"]
 
 export type PrincipalType = 'user' | 'group'
 export type ObjectType = 'organization' | 'workspace'
 export type PermissionAction = 'select' | 'insert' | 'update' | 'delete' | 'create' | 'read' | 'manage'
 export type UsersPermissionsView = Database['public']['Views']['users_permissions']['Row']
+export type SubscriptionStatus = Database['public']['Enums']['subscription_status']
 

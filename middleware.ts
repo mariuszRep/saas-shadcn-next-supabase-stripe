@@ -5,6 +5,11 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Skip middleware for webhook endpoints (they use signature verification instead)
+  if (pathname.startsWith('/api/webhooks/')) {
+    return NextResponse.next()
+  }
+
   // Apply rate limiting to auth endpoints
   if (
     pathname.startsWith('/login') ||
@@ -75,7 +80,10 @@ async function handleAuthErrorsAndUpdateSession(request: NextRequest) {
     }
   }
 
-  return await updateSession(request)
+  // Update session and return response
+  // Subscription checks are now enforced at the database level via RLS policies
+  const response = await updateSession(request)
+  return response
 }
 
 export const config = {
