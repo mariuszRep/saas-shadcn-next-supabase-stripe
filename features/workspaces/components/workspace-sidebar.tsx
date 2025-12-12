@@ -185,7 +185,7 @@ export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sideb
 
   const manageUrl = organizationId
     ? `/organization/${organizationId}?section=workspaces`
-    : '/settings'
+    : '/organization'
 
   return (
     <Sidebar collapsible="icon" {...props}>

@@ -97,7 +97,7 @@ export default async function SettingsPage({ params, searchParams }: SettingsPag
 
   // Validate organizationId exists (layout already validates UUID format)
   if (!organizationId) {
-    redirect('/settings')
+    redirect('/organization')
   }
 
   return (

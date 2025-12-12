@@ -84,7 +84,7 @@ export function SettingsSidebar({
           onSelect={onSelectOrg}
           icon={Building2}
           label="Organization"
-          manageUrl="/settings?section=organizations"
+          manageUrl="/organization"
         />
       </SidebarHeader>
       <SidebarContent>
