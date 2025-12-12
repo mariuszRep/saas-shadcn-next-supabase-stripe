@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Building2, Folder, Shield, ChevronRight, UserCog, Users, Mail, Settings, User } from 'lucide-react'
+import { Building2, Folder, Shield, ChevronRight, UserCog, Users, Mail, Settings, User, CreditCard } from 'lucide-react'
 import { NavSwitcher } from '@/components/layout/nav-switcher'
 import { NavUser } from '@/components/layout/nav-user'
 import {
@@ -26,9 +26,10 @@ import {
 } from '@/components/ui/sidebar'
 import type { Organization } from '@/types/database'
 
-export type SettingsSection = 'workspaces' | 'access' | 'general' | 'account'
+export type SettingsSection = 'workspaces' | 'access' | 'general' | 'account' | 'subscription'
 export type AccessSubsection = 'permissions' | 'roles' | 'invitations'
-export type GeneralSubsection = 'profile' | 'billing'
+export type GeneralSubsection = 'profile'
+export type SubscriptionSubsection = 'billing'
 export type AccountSubsection = 'profile' | 'security'
 
 interface SettingsSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -41,6 +42,8 @@ interface SettingsSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onSubsectionChange?: (subsection: AccessSubsection) => void
   activeGeneralSubsection?: GeneralSubsection
   onGeneralSubsectionChange?: (subsection: GeneralSubsection) => void
+  activeSubscriptionSubsection?: SubscriptionSubsection
+  onSubscriptionSubsectionChange?: (subsection: SubscriptionSubsection) => void
   activeAccountSubsection?: AccountSubsection
   onAccountSubsectionChange?: (subsection: AccountSubsection) => void
   user: {
@@ -75,10 +78,13 @@ const generalSubsections: { value: GeneralSubsection; label: string; icon: React
     label: 'Profile',
     icon: Building2,
   },
+]
+
+const subscriptionSubsections: { value: SubscriptionSubsection; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   {
     value: 'billing',
     label: 'Billing',
-    icon: Mail,
+    icon: CreditCard,
   },
 ]
 
@@ -105,6 +111,8 @@ export function SettingsSidebar({
   onSubsectionChange,
   activeGeneralSubsection = 'profile',
   onGeneralSubsectionChange,
+  activeSubscriptionSubsection = 'billing',
+  onSubscriptionSubsectionChange,
   activeAccountSubsection = 'profile',
   onAccountSubsectionChange,
   user,
@@ -164,6 +172,55 @@ export function SettingsSidebar({
                             }
                           }}
                           aria-current={activeSection === 'general' && activeGeneralSubsection === subsection.value ? 'page' : undefined}
+                          className={navigationDisabled ? 'pointer-events-none opacity-50' : ''}
+                        >
+                          <subsection.icon className="h-4 w-4" />
+                          <span>{subsection.label}</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+
+            {/* Subscription Section */}
+            <Collapsible
+              asChild
+              open={activeSection === 'subscription'}
+              onOpenChange={(open) => {
+                if (open && !navigationDisabled) {
+                  onSectionChange('subscription')
+                }
+              }}
+              className="group/collapsible"
+            >
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton
+                    tooltip="Subscription"
+                    disabled={navigationDisabled}
+                  >
+                    <CreditCard />
+                    <span>Subscription</span>
+                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {subscriptionSubsections.map((subsection) => (
+                      <SidebarMenuSubItem key={subsection.value}>
+                        <SidebarMenuSubButton
+                          isActive={activeSection === 'subscription' && activeSubscriptionSubsection === subsection.value}
+                          onClick={() => {
+                            if (!navigationDisabled) {
+                              if (activeSection !== 'subscription') {
+                                onSectionChange('subscription')
+                              }
+                              onSubscriptionSubsectionChange?.(subsection.value)
+                            }
+                          }}
+                          aria-current={activeSection === 'subscription' && activeSubscriptionSubsection === subsection.value ? 'page' : undefined}
                           className={navigationDisabled ? 'pointer-events-none opacity-50' : ''}
                         >
                           <subsection.icon className="h-4 w-4" />
