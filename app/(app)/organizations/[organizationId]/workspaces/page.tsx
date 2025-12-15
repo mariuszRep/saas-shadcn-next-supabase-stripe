@@ -4,7 +4,6 @@ import { WorkspaceManager } from '@/features/workspaces/components/workspace-man
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { ContentWrapper } from '@/components/layout/content-wrapper'
 
 interface WorkspacesPageProps {
   params: Promise<{
@@ -33,7 +32,7 @@ export default async function WorkspacesPage({ params }: WorkspacesPageProps) {
   }
 
   return (
-    <ContentWrapper variant="full" className="py-8 px-4">
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex items-center gap-4 mb-8">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/organizations">
@@ -52,6 +51,6 @@ export default async function WorkspacesPage({ params }: WorkspacesPageProps) {
         organizationId={organizationId}
         organizationName={organization.name}
       />
-    </ContentWrapper>
+    </div>
   )
 }

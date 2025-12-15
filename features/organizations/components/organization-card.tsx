@@ -126,7 +126,7 @@ export function OrganizationCard({
   // Invitation Card
   if (variant === 'invitation') {
     return (
-      <Card className="border-2 border-blue-500">
+      <Card className="border-2 border-blue-500 flex flex-col">
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -138,7 +138,7 @@ export function OrganizationCard({
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1">
           <div className="flex gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Users className="h-4 w-4" />
@@ -156,7 +156,7 @@ export function OrganizationCard({
             </div>
           )}
         </CardContent>
-        <CardFooter className="gap-2">
+        <CardFooter className="gap-2 pt-4">
           <Button
             onClick={handleAccept}
             disabled={isAccepting || isDeclining}
@@ -180,7 +180,7 @@ export function OrganizationCard({
   // Default Organization Card
   return (
     <Card
-      className="hover:border-primary cursor-pointer transition-colors"
+      className="hover:border-primary cursor-pointer transition-colors flex flex-col"
       onDoubleClick={handleDoubleClick}
     >
       <CardHeader>
@@ -225,7 +225,7 @@ export function OrganizationCard({
           </DropdownMenu>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         <div className="flex gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Users className="h-4 w-4" />
@@ -237,7 +237,7 @@ export function OrganizationCard({
           </div>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="pt-4">
         <Button
           variant="outline"
           size="sm"

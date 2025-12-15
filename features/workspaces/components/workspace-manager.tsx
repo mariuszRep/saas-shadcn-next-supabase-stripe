@@ -94,7 +94,7 @@ function WorkspaceCard({ variant, workspace, organizationId, onCreate, onEdit, o
 
   return (
     <Card
-      className="hover:border-primary cursor-pointer transition-colors"
+      className="hover:border-primary cursor-pointer transition-colors flex flex-col"
       onDoubleClick={handleDoubleClick}
     >
       <CardHeader>
@@ -139,12 +139,12 @@ function WorkspaceCard({ variant, workspace, organizationId, onCreate, onEdit, o
           </DropdownMenu>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         <p className="text-sm text-muted-foreground">
           Created {new Date(workspace.created_at).toLocaleDateString()}
         </p>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="pt-4">
         <Button
           variant="outline"
           size="sm"
@@ -255,37 +255,28 @@ export function WorkspaceManager({ organizationId, organizationName }: Workspace
 
   return (
     <>
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-medium">Workspaces</h3>
-          <p className="text-sm text-muted-foreground">
-            Manage workspaces for {organizationName}
-          </p>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <p className="text-sm text-muted-foreground">Loading workspaces...</p>
         </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-muted-foreground">Loading workspaces...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <WorkspaceCard
+            variant="create"
+            onCreate={() => handleOpenDialog()}
+          />
+          {workspaces.map((workspace) => (
             <WorkspaceCard
-              variant="create"
-              onCreate={() => handleOpenDialog()}
+              key={workspace.id}
+              variant="default"
+              workspace={workspace}
+              organizationId={organizationId}
+              onEdit={handleOpenDialog}
+              onDelete={setDeleteConfirmWorkspace}
             />
-            {workspaces.map((workspace) => (
-              <WorkspaceCard
-                key={workspace.id}
-                variant="default"
-                workspace={workspace}
-                organizationId={organizationId}
-                onEdit={handleOpenDialog}
-                onDelete={setDeleteConfirmWorkspace}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
