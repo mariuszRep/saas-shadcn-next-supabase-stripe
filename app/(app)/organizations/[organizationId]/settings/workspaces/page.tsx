@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { ContentWrapper } from '@/components/layout/content-wrapper'
 import { WorkspaceManager } from '@/features/workspaces/components/workspace-manager'
 import { getUserOrganizations } from '@/features/organizations/organization-actions'
 
@@ -28,11 +27,11 @@ export default async function WorkspacesPage({ params }: WorkspacesPageProps) {
   }
 
   return (
-    <ContentWrapper variant="full">
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
       <WorkspaceManager
         organizationId={organizationId}
         organizationName={organization.name}
       />
-    </ContentWrapper>
+    </div>
   )
 }
