@@ -12,21 +12,63 @@ export default async function OrganizationsPage() {
     redirect('/login')
   }
 
-  // Fetch user's organizations with member and workspace counts
-  const { data: organizations } = await supabase
-    .from('organizations')
-    .select('id, name, created_at')
-    .order('created_at', { ascending: false })
+  // Fetch organizations where user has permissions with LEFT JOIN on pending invitations
+  const { data: userPermissions } = await supabase
+    .from('permissions')
+    .select(`
+      org_id,
+      role_id,
+      organizations!inner(id, name, created_at),
+      roles!inner(name, description)
+    `)
+    .eq('principal_id', user.id)
+    .eq('object_type', 'organization')
 
-  // Get member counts for each organization
-  const orgIds = organizations?.map(org => org.id) || []
+  // Fetch pending invitations for this user
+  const { data: pendingInvitations } = await supabase
+    .from('invitations')
+    .select('id, org_id, expires_at')
+    .eq('user_id', user.id)
+    .eq('status', 'pending')
+
+  // Create invitation map by org_id
+  const invitationMap = new Map(
+    pendingInvitations?.map(inv => [inv.org_id, inv]) || []
+  )
+
+  // Extract unique organizations with invitation status
+  const organizations = userPermissions?.map(perm => {
+    const org = (perm.organizations as any)
+    const role = (perm.roles as any)
+    const invitation = invitationMap.get(perm.org_id)
+
+    return {
+      id: org.id,
+      name: org.name,
+      created_at: org.created_at,
+      roleName: role?.name,
+      roleDescription: role?.description,
+      invitation: invitation ? {
+        invitationId: invitation.id,
+        expiresAt: invitation.expires_at,
+      } : undefined,
+    }
+  }) || []
+
+  // Remove duplicates and sort
+  const uniqueOrganizations = Array.from(
+    new Map(organizations.map(org => [org.id, org])).values()
+  ).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  // Get member and workspace counts for all organizations
+  const orgIds = uniqueOrganizations.map(org => org.id)
+
   const { data: memberCounts } = await supabase
     .from('permissions')
     .select('org_id')
     .eq('object_type', 'organization')
     .in('org_id', orgIds)
 
-  // Get workspace counts for each organization
   const { data: workspaceCounts } = await supabase
     .from('workspaces')
     .select('organization_id')
@@ -43,89 +85,18 @@ export default async function OrganizationsPage() {
     workspaceCountMap.set(w.organization_id, (workspaceCountMap.get(w.organization_id) || 0) + 1)
   })
 
-  // Fetch pending invitations for the user
-  const { data: invitations } = await supabase
-    .from('invitations')
-    .select(`
-      id,
-      status,
-      expires_at,
-      user_id
-    `)
-    .eq('user_id', user.id)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false })
-
-  // Create invitation map by organization ID
-  const invitationMap = new Map<string, { invitationId: string; roleName: string; roleDescription: string | null; expiresAt: string }>()
-  
-  for (const inv of invitations || []) {
-    // Get organization permission for this invitation
-    const { data: orgPerm } = await supabase
-      .from('permissions')
-      .select(`
-        object_id,
-        role_id,
-        roles!inner(name, description)
-      `)
-      .eq('principal_id', inv.user_id)
-      .eq('object_type', 'organization')
-      .limit(1)
-      .maybeSingle()
-
-    if (orgPerm) {
-      const roles = orgPerm.roles as unknown as { name: string; description: string | null }
-      invitationMap.set(orgPerm.object_id, {
-        invitationId: inv.id,
-        roleName: roles?.name || 'Member',
-        roleDescription: roles?.description,
-        expiresAt: inv.expires_at,
-      })
-    }
-  }
-
-  // Get all organization IDs that user has invitations for
-  const invitedOrgIds = Array.from(invitationMap.keys())
-  
-  // Get member and workspace counts for invited organizations (if any)
-  if (invitedOrgIds.length > 0) {
-    const { data: invitedMemberCounts } = await supabase
-      .from('permissions')
-      .select('org_id')
-      .eq('object_type', 'organization')
-      .in('org_id', invitedOrgIds)
-
-    const { data: invitedWorkspaceCounts } = await supabase
-      .from('workspaces')
-      .select('organization_id')
-      .in('organization_id', invitedOrgIds)
-
-    // Add counts to maps
-    invitedMemberCounts?.forEach(m => {
-      memberCountMap.set(m.org_id, (memberCountMap.get(m.org_id) || 0) + 1)
-    })
-
-    invitedWorkspaceCounts?.forEach(w => {
-      workspaceCountMap.set(w.organization_id, (workspaceCountMap.get(w.organization_id) || 0) + 1)
-    })
-  }
-
-  // Use only the user's organizations (invitations will be attached via the map)
-  const allOrgs = organizations || []
-
   // Prepare organization data for client component
-  const organizationsData = allOrgs.map((org) => {
-    const invitation = invitationMap.get(org.id)
+  const organizationsData = uniqueOrganizations.map((org) => {
     return {
       id: org.id,
       name: org.name,
       memberCount: memberCountMap.get(org.id) || 0,
       workspaceCount: workspaceCountMap.get(org.id) || 0,
-      invitation: invitation ? {
-        invitationId: invitation.invitationId,
-        roleName: invitation.roleName,
-        roleDescription: invitation.roleDescription,
-        expiresAt: invitation.expiresAt,
+      invitation: org.invitation ? {
+        invitationId: org.invitation.invitationId,
+        roleName: org.roleName,
+        roleDescription: org.roleDescription,
+        expiresAt: org.invitation.expiresAt,
       } : undefined,
     }
   })

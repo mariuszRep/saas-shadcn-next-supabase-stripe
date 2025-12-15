@@ -180,6 +180,7 @@ export class InvitationService {
       .from('invitations')
       .insert({
         user_id: userId,
+        org_id: orgId,
         status: 'pending',
         expires_at: expiresAt.toISOString(),
         created_by: inviterId,
