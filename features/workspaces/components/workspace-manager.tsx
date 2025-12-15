@@ -2,12 +2,13 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { Folder, Plus, Pencil, Trash2, ArrowRight } from 'lucide-react'
+import { Folder, Plus, ArrowRight, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -19,6 +20,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,8 +47,122 @@ interface WorkspaceManagerProps {
   organizationName: string
 }
 
-export function WorkspaceManager({ organizationId, organizationName }: WorkspaceManagerProps) {
+interface WorkspaceCardProps {
+  variant: 'create' | 'default'
+  workspace?: Workspace
+  organizationId?: string
+  onCreate?: () => void
+  onEdit?: (workspace: Workspace) => void
+  onDelete?: (workspace: Workspace) => void
+}
+
+function WorkspaceCard({ variant, workspace, organizationId, onCreate, onEdit, onDelete }: WorkspaceCardProps) {
   const router = useRouter()
+
+  const handleDoubleClick = () => {
+    if (variant === 'default' && workspace && organizationId) {
+      router.push(`/organizations/${organizationId}/workspaces/${workspace.id}`)
+    }
+  }
+
+  const handleEnter = () => {
+    if (variant === 'default' && workspace && organizationId) {
+      router.push(`/organizations/${organizationId}/workspaces/${workspace.id}`)
+    }
+  }
+
+  if (variant === 'create') {
+    return (
+      <Card
+        className="border-2 border-dashed hover:border-primary cursor-pointer transition-colors"
+        onClick={onCreate}
+      >
+        <CardContent className="flex flex-col items-center justify-center py-12 px-6">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 mb-4">
+            <Plus className="h-6 w-6 text-primary" />
+          </div>
+          <p className="text-sm font-medium text-center">Create Workspace</p>
+          <p className="text-xs text-muted-foreground text-center mt-1">
+            Add a new workspace
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!workspace) return null
+
+  return (
+    <Card
+      className="hover:border-primary cursor-pointer transition-colors"
+      onDoubleClick={handleDoubleClick}
+    >
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <Folder className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1">
+            <CardTitle className="text-xl">{workspace.name}</CardTitle>
+            <CardDescription>Double-click to enter workspace</CardDescription>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={(e) => {
+                e.stopPropagation()
+                onEdit?.(workspace)
+              }}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete?.(workspace)
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">
+          Created {new Date(workspace.created_at).toLocaleDateString()}
+        </p>
+      </CardContent>
+      <CardFooter>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleEnter()
+          }}
+        >
+          <ArrowRight className="mr-2 h-4 w-4" />
+          Enter
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+}
+
+export function WorkspaceManager({ organizationId, organizationName }: WorkspaceManagerProps) {
   const [workspaces, setWorkspaces] = React.useState<Workspace[]>([])
   const [loading, setLoading] = React.useState(true)
   const [dialogOpen, setDialogOpen] = React.useState(false)
@@ -135,82 +256,32 @@ export function WorkspaceManager({ organizationId, organizationName }: Workspace
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium">Workspaces</h3>
-            <p className="text-sm text-muted-foreground">
-              Manage workspaces for {organizationName}
-            </p>
-          </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Workspace
-          </Button>
+        <div>
+          <h3 className="text-lg font-medium">Workspaces</h3>
+          <p className="text-sm text-muted-foreground">
+            Manage workspaces for {organizationName}
+          </p>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <p className="text-sm text-muted-foreground">Loading workspaces...</p>
           </div>
-        ) : workspaces.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Folder className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-sm text-muted-foreground mb-4">No workspaces found</p>
-              <Button onClick={() => handleOpenDialog()} variant="outline">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Your First Workspace
-              </Button>
-            </CardContent>
-          </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <WorkspaceCard
+              variant="create"
+              onCreate={() => handleOpenDialog()}
+            />
             {workspaces.map((workspace) => (
-              <Card key={workspace.id} className="relative group">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                        <Folder className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">{workspace.name}</CardTitle>
-                        <CardDescription className="text-xs mt-1">
-                          Created {new Date(workspace.created_at).toLocaleDateString()}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => router.push(`/organizations/${organizationId}/workspaces/${workspace.id}`)}
-                    >
-                      <ArrowRight className="mr-2 h-3 w-3" />
-                      Go to Workspace
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenDialog(workspace)}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setDeleteConfirmWorkspace(workspace)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <WorkspaceCard
+                key={workspace.id}
+                variant="default"
+                workspace={workspace}
+                organizationId={organizationId}
+                onEdit={handleOpenDialog}
+                onDelete={setDeleteConfirmWorkspace}
+              />
             ))}
           </div>
         )}
