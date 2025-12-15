@@ -111,7 +111,7 @@ export async function createSubscriptionCheckoutSession(
     const successUrl = params.isOnboarding
       ? `${baseUrl}/onboarding?payment_success=true&session_id={CHECKOUT_SESSION_ID}`
       : params.orgId
-        ? `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`
+        ? `${baseUrl}/organizations/${params.orgId}/subscription/success?session_id={CHECKOUT_SESSION_ID}`
         : `${baseUrl}/onboarding?payment_success=true&session_id={CHECKOUT_SESSION_ID}`
 
     // Create Checkout Session in subscription mode
@@ -128,7 +128,7 @@ export async function createSubscriptionCheckoutSession(
         metadata: subscriptionMetadata,
       },
       success_url: successUrl,
-      cancel_url: params.orgId ? `${baseUrl}/organization` : `${baseUrl}/plans`,
+      cancel_url: params.orgId ? `${baseUrl}/organizations` : `${baseUrl}/plans`,
     })
 
     if (!session.url) {

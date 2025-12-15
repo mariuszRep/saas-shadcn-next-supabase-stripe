@@ -96,7 +96,7 @@ export function WorkspaceClient({ workspace, organizationName }: WorkspaceClient
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href={`/organization/${workspace.organization_id}`}>
+              <BreadcrumbLink href={`/organizations/${workspace.organization_id}`}>
                 {organizationName}
               </BreadcrumbLink>
             </BreadcrumbItem>

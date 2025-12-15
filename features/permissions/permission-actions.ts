@@ -120,7 +120,7 @@ export async function assignRole(params: AssignRoleParams): Promise<{
         }
 
         revalidatePath('/settings')
-        revalidatePath(`/organization/${params.org_id}/settings`)
+        revalidatePath(`/organizations/${params.org_id}/settings`)
 
         return { success: true, permission: data }
     } catch (error) {

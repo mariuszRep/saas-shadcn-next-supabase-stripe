@@ -47,8 +47,8 @@ export function NavUser({
 
   // Build settings URL with current org context (organization-level settings)
   const settingsUrl = context?.organization
-    ? `/organization/${context.organization.id}`
-    : '/organization'
+    ? `/organizations/${context.organization.id}`
+    : '/organizations'
 
   return (
     <SidebarMenu>

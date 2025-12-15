@@ -44,7 +44,7 @@ export async function sendInvitation(
     })
 
     // Revalidate organization page
-    revalidatePath(`/organization/${params.orgId}`)
+    revalidatePath(`/organizations/${params.orgId}`)
 
     return {
       success: true,
@@ -237,7 +237,7 @@ export async function declineInvitation(
       throw new Error(`Failed to decline invitation: ${updateError.message}`)
     }
 
-    revalidatePath('/organization')
+    revalidatePath('/organizations')
     return { success: true }
   } catch (error) {
     console.error('Error declining invitation:', error)
@@ -279,7 +279,7 @@ export async function revokeInvitation(
     const result = await invitationService.revokeInvitation(invitationId, organizationId)
 
     // Revalidate organization page
-    revalidatePath(`/organization/${organizationId}`)
+    revalidatePath(`/organizations/${organizationId}`)
 
     return {
       success: true,
@@ -338,7 +338,7 @@ export async function bulkRevokeInvitations(
     }
 
     // Revalidate organization page
-    revalidatePath(`/organization/${organizationId}`)
+    revalidatePath(`/organizations/${organizationId}`)
 
     return {
       success: true,

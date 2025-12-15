@@ -48,7 +48,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
       await supabase.from('invitations').update({ status: 'expired' }).eq('id', invitation.id)
     } else {
       // Redirect to organization list where invitation cards are displayed
-      redirect('/organization')
+      redirect('/organizations')
     }
   }
 
@@ -79,7 +79,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
       } catch (error) {
         console.error('Failed to clean up onboarding progress:', error)
       }
-      redirect('/organization')
+      redirect('/organizations')
     }
 
     // Load saved progress from database

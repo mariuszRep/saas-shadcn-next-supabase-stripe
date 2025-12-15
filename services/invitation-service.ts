@@ -91,7 +91,7 @@ export class InvitationService {
         type: 'magiclink',
         email: email,
         options: {
-          redirectTo: redirectUrl ?? `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=/organization/${orgId}`,
+          redirectTo: redirectUrl ?? `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=/organizations/${orgId}`,
         },
       })
 
@@ -137,7 +137,7 @@ export class InvitationService {
                 type: 'magiclink',
                 email: email,
                 options: {
-                  redirectTo: redirectUrl ?? `${process.env.NEXT_PUBLIC_SITE_URL || ''}/auth/callback?next=/organization/${orgId}`,
+                  redirectTo: redirectUrl ?? `${process.env.NEXT_PUBLIC_SITE_URL || ''}/auth/callback?next=/organizations/${orgId}`,
                 },
               })
 

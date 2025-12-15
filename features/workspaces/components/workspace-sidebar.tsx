@@ -200,7 +200,7 @@ export function WorkspaceSidebar({ activeSection, onSectionChange, ...props }: W
 
   const handleWorkspaceSwitch = (workspace: { id: string; name: string }) => {
     if (organizationId) {
-      router.push(`/organization/${organizationId}/workspace/${workspace.id}`)
+      router.push(`/organizations/${organizationId}/workspace/${workspace.id}`)
     }
   }
 
@@ -217,8 +217,8 @@ export function WorkspaceSidebar({ activeSection, onSectionChange, ...props }: W
     }
 
   const manageUrl = organizationId
-    ? `/organization/${organizationId}?section=workspaces`
-    : '/organization'
+    ? `/organizations/${organizationId}/settings/workspaces`
+    : '/organizations'
 
   return (
     <Sidebar collapsible="icon" {...props}>

@@ -182,7 +182,7 @@ export function MarketingNavbar() {
           ) : user ? (
             <>
               <Button asChild>
-                <Link href="/organization">
+                <Link href="/organizations">
                   <LayoutDashboard className="h-5 w-5" />
                   <span>Dashboard</span>
                 </Link>

@@ -156,7 +156,7 @@ export function OrganizationCard({
   }
 
   return (
-    <Link href={`/organization/${id}/workspace`}>
+    <Link href={`/organizations/${id}/workspace`}>
       {cardContent}
     </Link>
   )

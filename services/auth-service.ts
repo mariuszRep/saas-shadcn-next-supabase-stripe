@@ -213,7 +213,7 @@ export async function getPostAuthRedirectPath(): Promise<string> {
 
     if (now <= expiresAt) {
       // Redirect to organization list where invitation cards are displayed
-      return '/organization'
+      return '/organizations'
     } else {
       // Mark as expired
       await supabase
@@ -243,5 +243,5 @@ export async function getPostAuthRedirectPath(): Promise<string> {
   }
 
   // Has orgs and workspaces - send to organizations list
-  return '/organization'
+  return '/organizations'
 }

@@ -29,14 +29,14 @@ export default async function WorkspacesPage({ params }: WorkspacesPageProps) {
     .single()
 
   if (!organization) {
-    redirect('/organization')
+    redirect('/organizations')
   }
 
   return (
     <ContentWrapper variant="full" className="py-8 px-4">
       <div className="flex items-center gap-4 mb-8">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/organization">
+          <Link href="/organizations">
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
