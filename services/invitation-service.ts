@@ -535,4 +535,128 @@ export class InvitationService {
       invitationId,
     }
   }
+
+  /**
+   * Decline an invitation (user-facing action)
+   * Updates invitation status to 'declined'
+   */
+  async declineInvitation(invitationId: string, userId: string) {
+    // Update invitation status to 'declined'
+    const { error } = await this.supabase
+      .from('invitations')
+      .update({ status: 'declined', updated_at: new Date().toISOString() })
+      .eq('id', invitationId)
+      .eq('user_id', userId) // Ensure user can only decline their own invitations
+
+    if (error) {
+      throw new Error(`Failed to decline invitation: ${error.message}`)
+    }
+
+    return { invitationId }
+  }
+
+  /**
+   * Get all invitations for an organization with full details
+   * Includes user emails, roles, and workspace counts
+   */
+  async getOrganizationInvitations(organizationId: string): Promise<Array<{
+    id: string
+    email: string
+    status: string
+    userId: string
+    orgRole: string
+    workspaceCount: number
+    expiresAt: string
+    createdAt: string
+  }>> {
+    // Fetch all permissions for this organization
+    const { data: permissions, error: permissionsError } = await this.supabase
+      .from('permissions')
+      .select(`
+        id,
+        principal_id,
+        role_id,
+        created_at,
+        roles!inner(
+          name,
+          description
+        )
+      `)
+      .eq('object_type', 'organization')
+      .eq('object_id', organizationId)
+      .eq('principal_type', 'user')
+
+    if (permissionsError) {
+      throw new Error(`Failed to fetch permissions: ${permissionsError.message}`)
+    }
+
+    // Get unique user IDs
+    const userIds = [...new Set(permissions?.map(p => p.principal_id) || [])]
+
+    if (userIds.length === 0) {
+      return []
+    }
+
+    // Fetch invitations for these users
+    const { data: invitationsData } = await this.supabase
+      .from('invitations')
+      .select('*')
+      .in('user_id', userIds)
+      .order('created_at', { ascending: false })
+
+    if (!invitationsData || invitationsData.length === 0) {
+      return []
+    }
+
+    // Fetch user emails and build detailed invitation list
+    const invitationsWithDetails = []
+
+    for (const invitation of invitationsData) {
+      // Find the organization permission for this user
+      const permission = permissions?.find(p => p.principal_id === invitation.user_id)
+
+      // Skip if no permission found
+      if (!permission) {
+        continue
+      }
+
+      // Only include invitations that match this organization
+      // An invitation matches if the org permission was created within 10 seconds of the invitation
+      const invitationCreatedAt = new Date(invitation.created_at).getTime()
+      const permissionCreatedAt = new Date(permission.created_at).getTime()
+      const timeDiff = Math.abs(invitationCreatedAt - permissionCreatedAt)
+
+      // If permission was created more than 10 seconds apart from invitation, skip it
+      if (timeDiff > 10000) {
+        continue
+      }
+
+      const roles = permission?.roles as unknown as { name: string; description: string | null }
+
+      // Get workspace count
+      const { count } = await this.supabase
+        .from('permissions')
+        .select('id', { count: 'exact', head: true })
+        .eq('principal_id', invitation.user_id)
+        .eq('object_type', 'workspace')
+        .eq('org_id', organizationId)
+
+      // Fetch user email from auth.users via admin API
+      const { data: userData } = await this.supabase.auth.admin.getUserById(invitation.user_id)
+      const userEmail = userData?.user?.email || 'Unknown'
+
+      invitationsWithDetails.push({
+        id: invitation.id,
+        email: userEmail,
+        status: invitation.status,
+        userId: invitation.user_id,
+        orgRole: roles?.name || 'Unknown',
+        workspaceCount: count || 0,
+        expiresAt: invitation.expires_at,
+        createdAt: invitation.created_at,
+      })
+    }
+
+    return invitationsWithDetails
+  }
 }

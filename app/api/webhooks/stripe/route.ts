@@ -141,13 +141,16 @@ async function handleWebhookEvent(event: Stripe.Event) {
 
     case 'customer.subscription.updated': {
       const subscription = event.data.object as Stripe.Subscription
+      const currentPeriodEnd = subscription.current_period_end as number
+      const currentPeriodStart = subscription.current_period_start as number
+
       console.log('🔄 Subscription updated:', {
         subscriptionId: subscription.id,
         customer: subscription.customer,
         status: subscription.status,
         cancel_at_period_end: subscription.cancel_at_period_end,
         canceled_at: subscription.canceled_at,
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
         metadata: subscription.metadata,
       })
 
@@ -155,8 +158,8 @@ async function handleWebhookEvent(event: Stripe.Event) {
       if (subscription.cancel_at_period_end) {
         console.log('⚠️  SUBSCRIPTION SCHEDULED FOR CANCELLATION:', {
           subscriptionId: subscription.id,
-          willCancelAt: new Date(subscription.current_period_end * 1000).toISOString(),
-          daysRemaining: Math.ceil((subscription.current_period_end * 1000 - Date.now()) / (1000 * 60 * 60 * 24))
+          willCancelAt: new Date(currentPeriodEnd * 1000).toISOString(),
+          daysRemaining: Math.ceil((currentPeriodEnd * 1000 - Date.now()) / (1000 * 60 * 60 * 24))
         })
       }
 
@@ -166,11 +169,11 @@ async function handleWebhookEvent(event: Stripe.Event) {
         .from('subscriptions')
         .update({
           status: subscription.status,
-          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          current_period_start: new Date(currentPeriodStart * 1000).toISOString(),
+          current_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
           cancel_at_period_end: subscription.cancel_at_period_end,
           canceled_at: subscription.canceled_at
-            ? new Date(subscription.canceled_at * 1000).toISOString()
+            ? new Date((subscription.canceled_at as number) * 1000).toISOString()
             : null,
         })
         .eq('stripe_subscription_id', subscription.id)
