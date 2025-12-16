@@ -364,6 +364,33 @@ export class InvitationService {
   }
 
   /**
+   * Get all pending invitations for a specific user
+   * Includes organization details
+   */
+  async getPendingInvitations(userId: string) {
+    const { data, error } = await this.supabase
+      .from('invitations')
+      .select(`
+        id,
+        org_id,
+        expires_at,
+        status,
+        organizations!inner(id, name, created_at)
+      `)
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+
+    if (error) {
+      console.error('Error fetching pending invitations:', error)
+      throw new Error('Failed to fetch pending invitations')
+    }
+
+    // Map to a friendlier structure if needed, or return raw data
+    // The current page implementation expects the raw structure with nested organizations
+    return data || []
+  }
+
+  /**
    * Accept an invitation and update status
    * Validates invitation exists and is not expired
    */
