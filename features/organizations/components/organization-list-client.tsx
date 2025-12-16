@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { OrganizationCard } from '@/features/organizations/components/organization-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,8 +15,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { toast } from 'sonner'
 import { createOrganization } from '@/features/organizations/organization-actions'
+import { Home } from 'lucide-react'
 
 interface OrganizationData {
   id: string
@@ -79,6 +89,22 @@ export function OrganizationListClient({ organizations }: OrganizationListClient
   return (
     <>
       <div className="container mx-auto py-8 px-4 max-w-7xl">
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">
+                  <Home className="h-4 w-4" />
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Organizations</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Organizations</h1>
           <p className="text-muted-foreground mt-2">

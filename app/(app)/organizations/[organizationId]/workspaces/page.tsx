@@ -1,8 +1,15 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { WorkspaceManager } from '@/features/workspaces/components/workspace-manager'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import { Home } from 'lucide-react'
 import Link from 'next/link'
 
 interface WorkspacesPageProps {
@@ -33,18 +40,37 @@ export default async function WorkspacesPage({ params }: WorkspacesPageProps) {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
-      <div className="flex items-center gap-4 mb-8">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/organizations">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight">Workspaces</h1>
-          <p className="text-muted-foreground mt-2">
-            {organization.name}
-          </p>
-        </div>
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/">
+                <Home className="h-4 w-4" />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/organizations">Organizations</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{organization.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Workspaces</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Workspaces</h1>
+        <p className="text-muted-foreground mt-2">
+          {organization.name}
+        </p>
       </div>
 
       <WorkspaceManager

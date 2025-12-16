@@ -22,30 +22,20 @@ export default async function OrganizationsPage() {
     invitationService.getPendingInvitations(user.id),
   ])
 
-  // Debug logging - remove after investigation
-  console.log('=== INVITATION DEBUG ===')
-  console.log('Current user ID:', user.id)
-  console.log('Pending invitations fetched:', pendingInvitations)
-  console.log('Pending invitations count:', pendingInvitations.length)
-  console.log('Expected user ID for invitation: 15c34ed5-11d6-4dd2-9661-1ae0bc92c3e6')
-  console.log('User IDs match:', user.id === '15c34ed5-11d6-4dd2-9661-1ae0bc92c3e6')
-  console.log('=== END DEBUG ===')
-
   // Create a map for quick lookup of member organizations
   const memberOrgMap = new Map(memberOrganizations.map(org => [org.id, org]))
 
   // Create a map for quick lookup of pending invitations, prioritizing the invitation info
   const invitationOrgMap = new Map()
-  console.log('Processing invitations...')
+  
+  // Collect org IDs that need to be fetched directly
+  const orgIdsToFetch = new Set<string>()
   
   for (const inv of pendingInvitations) {
-    console.log('Processing invitation:', inv)
     let orgDetails = inv.organizations as any
-    console.log('inv.organizations:', orgDetails)
 
     // Fallback: If join failed (e.g. RLS issue) but we have the org in memberOrganizations
     if (!orgDetails && inv.org_id && memberOrgMap.has(inv.org_id)) {
-      console.log('Using fallback for org_id:', inv.org_id)
       const memberOrg = memberOrgMap.get(inv.org_id)
       if (memberOrg) {
         orgDetails = {
@@ -53,27 +43,15 @@ export default async function OrganizationsPage() {
           name: memberOrg.name,
           created_at: memberOrg.created_at,
         }
-        console.log('Fallback orgDetails:', orgDetails)
       }
     }
 
-    // Final fallback: Query organization directly by ID
+    // Collect org IDs that need direct fetching
     if (!orgDetails && inv.org_id) {
-      console.log('Querying organization directly for org_id:', inv.org_id)
-      const { data: directOrg } = await supabase
-        .from('organizations')
-        .select('id, name, created_at')
-        .eq('id', inv.org_id)
-        .single()
-      
-      if (directOrg) {
-        orgDetails = directOrg
-        console.log('Direct query orgDetails:', orgDetails)
-      }
+      orgIdsToFetch.add(inv.org_id)
     }
 
     if (orgDetails) {
-      console.log('Adding to invitationOrgMap:', orgDetails.name)
       invitationOrgMap.set(orgDetails.id, {
         id: orgDetails.id,
         name: orgDetails.name,
@@ -83,8 +61,34 @@ export default async function OrganizationsPage() {
           expiresAt: inv.expires_at,
         },
       })
-    } else {
-      console.log('No orgDetails found for invitation:', inv.id)
+    }
+  }
+
+  // Batch fetch organizations that weren't found via join or member map
+  if (orgIdsToFetch.size > 0) {
+    const { data: directOrgs } = await supabase
+      .from('organizations')
+      .select('id, name, created_at')
+      .in('id', Array.from(orgIdsToFetch))
+    
+    const directOrgMap = new Map(directOrgs?.map(org => [org.id, org]) || [])
+    
+    // Process invitations that needed direct org fetching
+    for (const inv of pendingInvitations) {
+      if (inv.org_id && !invitationOrgMap.has(inv.org_id)) {
+        const directOrg = directOrgMap.get(inv.org_id)
+        if (directOrg) {
+          invitationOrgMap.set(directOrg.id, {
+            id: directOrg.id,
+            name: directOrg.name,
+            created_at: directOrg.created_at,
+            invitation: {
+              invitationId: inv.id,
+              expiresAt: inv.expires_at,
+            },
+          })
+        }
+      }
     }
   }
 
