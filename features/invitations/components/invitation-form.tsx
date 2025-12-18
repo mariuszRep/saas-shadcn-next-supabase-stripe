@@ -89,7 +89,7 @@ export function InvitationForm({ organizationId, roles, loadingRoles = false, on
           onSuccess()
         } else {
           router.push(
-            `/organization/${organizationId}/invitations/${result.data.userId}/workspaces`
+            `/organizations/${organizationId}/invitations/${result.data.userId}/workspaces`
           )
         }
       } else {

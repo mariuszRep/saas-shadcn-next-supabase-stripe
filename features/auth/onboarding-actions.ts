@@ -44,7 +44,7 @@ export async function createOrganizationWithPermissions(
     // Revalidate paths
     revalidatePath('/onboarding')
     revalidatePath('/settings')
-    revalidatePath(`/organization/${organization.id}`)
+    revalidatePath(`/organizations/${organization.id}`)
 
     return {
       success: true,
@@ -94,8 +94,8 @@ export async function createWorkspaceWithPermissions(
 
     // Revalidate paths
     revalidatePath('/onboarding')
-    revalidatePath(`/organization/${orgId}`)
-    revalidatePath(`/workspace/${workspace.id}`)
+    revalidatePath(`/organizations/${orgId}`)
+    revalidatePath(`/workspaces/${workspace.id}`)
 
     return {
       success: true,

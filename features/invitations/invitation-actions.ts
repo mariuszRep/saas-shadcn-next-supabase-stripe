@@ -44,7 +44,7 @@ export async function sendInvitation(
     })
 
     // Revalidate organization page
-    revalidatePath(`/organization/${params.orgId}`)
+    revalidatePath(`/organizations/${params.orgId}`)
 
     return {
       success: true,
@@ -93,7 +93,7 @@ export async function assignWorkspacePermissions(
 
     // Revalidate workspace settings pages
     params.workspacePermissions.forEach(wp => {
-      revalidatePath(`/workspace/${wp.workspaceId}/settings`)
+      revalidatePath(`/workspaces/${wp.workspaceId}/settings`)
     })
 
     return {
@@ -215,6 +215,7 @@ export async function declineInvitation(
 }> {
   try {
     const supabase = await createClient()
+    const adminClient = createAdminClient()
 
     // Get current user
     const {
@@ -226,18 +227,13 @@ export async function declineInvitation(
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Update invitation status to 'declined'
-    const { error: updateError } = await supabase
-      .from('invitations')
-      .update({ status: 'declined', updated_at: new Date().toISOString() })
-      .eq('id', invitationId)
-      .eq('user_id', user.id) // Ensure user can only decline their own invitations
+    // Create invitation service instance
+    const invitationService = new InvitationService(adminClient)
 
-    if (updateError) {
-      throw new Error(`Failed to decline invitation: ${updateError.message}`)
-    }
+    // Decline invitation
+    await invitationService.declineInvitation(invitationId, user.id)
 
-    revalidatePath('/organization')
+    revalidatePath('/organizations')
     return { success: true }
   } catch (error) {
     console.error('Error declining invitation:', error)
@@ -279,7 +275,7 @@ export async function revokeInvitation(
     const result = await invitationService.revokeInvitation(invitationId, organizationId)
 
     // Revalidate organization page
-    revalidatePath(`/organization/${organizationId}`)
+    revalidatePath(`/organizations/${organizationId}`)
 
     return {
       success: true,
@@ -338,7 +334,7 @@ export async function bulkRevokeInvitations(
     }
 
     // Revalidate organization page
-    revalidatePath(`/organization/${organizationId}`)
+    revalidatePath(`/organizations/${organizationId}`)
 
     return {
       success: true,
@@ -387,101 +383,15 @@ export async function getOrganizationInvitations(
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Fetch all permissions for this organization
-    const { data: permissions, error: permissionsError } = await supabase
-      .from('permissions')
-      .select(`
-        id,
-        principal_id,
-        role_id,
-        created_at,
-        roles!inner(
-          name,
-          description
-        )
-      `)
-      .eq('object_type', 'organization')
-      .eq('object_id', organizationId)
-      .eq('principal_type', 'user')
+    // Create invitation service instance
+    const invitationService = new InvitationService(adminClient)
 
-    if (permissionsError) {
-      console.error('Error fetching permissions:', permissionsError)
-      return { success: false, error: 'Failed to fetch permissions' }
-    }
-
-    console.log('Found permissions:', permissions?.length)
-
-    // Get unique user IDs
-    const userIds = [...new Set(permissions?.map(p => p.principal_id) || [])]
-
-    if (userIds.length === 0) {
-      return { success: true, data: [] }
-    }
-
-    // Fetch invitations for these users
-    const { data: invitationsData } = await supabase
-      .from('invitations')
-      .select('*')
-      .in('user_id', userIds)
-      .order('created_at', { ascending: false })
-
-    if (!invitationsData || invitationsData.length === 0) {
-      return { success: true, data: [] }
-    }
-
-    // Fetch user emails via admin API
-    const invitationsWithDetails: InvitationWithDetails[] = []
-
-    for (const invitation of invitationsData) {
-      // Find the organization permission for this user
-      const permission = permissions?.find(p => p.principal_id === invitation.user_id)
-
-      // Skip if no permission found (shouldn't happen but safeguard)
-      if (!permission) {
-        continue
-      }
-
-      // Only include invitations that match this organization
-      // An invitation matches if the org permission was created within 10 seconds of the invitation
-      const invitationCreatedAt = new Date(invitation.created_at).getTime()
-      const permissionCreatedAt = new Date(permission.created_at).getTime()
-      const timeDiff = Math.abs(invitationCreatedAt - permissionCreatedAt)
-
-      // If permission was created more than 10 seconds apart from invitation, skip it
-      // This means the invitation was for a different organization
-      if (timeDiff > 10000) {
-        continue
-      }
-
-      const roles = permission?.roles as unknown as { name: string; description: string | null }
-
-      // Get workspace count
-      const { count } = await supabase
-        .from('permissions')
-        .select('id', { count: 'exact', head: true })
-        .eq('principal_id', invitation.user_id)
-        .eq('object_type', 'workspace')
-        .eq('org_id', organizationId)
-
-      // Fetch user email from auth.users via admin API using service role client
-      const { data: userData } = await adminClient.auth.admin.getUserById(invitation.user_id)
-      const userEmail = userData?.user?.email || 'Unknown'
-
-      invitationsWithDetails.push({
-        id: invitation.id,
-        email: userEmail,
-        status: invitation.status,
-        userId: invitation.user_id,
-        orgRole: roles?.name || 'Unknown',
-        workspaceCount: count || 0,
-        expiresAt: invitation.expires_at,
-        createdAt: invitation.created_at,
-      })
-    }
+    // Get organization invitations with full details
+    const invitations = await invitationService.getOrganizationInvitations(organizationId)
 
     return {
       success: true,
-      data: invitationsWithDetails,
+      data: invitations,
     }
   } catch (error) {
     console.error('Error getting organization invitations:', error)

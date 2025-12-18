@@ -3,49 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { RoleService } from '@/services/role-service'
+import { handleRLSError } from '@/lib/errors'
 import type { CreateRoleInput, UpdateRoleInput, Role } from '@/types/roles'
-
-// =====================================================
-// RLS ERROR HANDLER
-// =====================================================
-
-/**
- * Utility to convert PostgreSQL RLS policy violations into user-friendly error messages
- */
-function handleRLSError(error: any): string {
-  if (!error) return 'An unexpected error occurred'
-
-  const errorMessage = error.message || ''
-  const errorCode = error.code || ''
-
-  // RLS policy violation
-  if (errorCode === '42501' || errorMessage.includes('policy')) {
-    return 'You do not have permission to perform this action'
-  }
-
-  // Foreign key violation
-  if (errorCode === '23503') {
-    return 'This operation would violate data relationships'
-  }
-
-  // Unique constraint violation
-  if (errorCode === '23505') {
-    return 'This record already exists'
-  }
-
-  // Not null violation
-  if (errorCode === '23502') {
-    return 'Required field is missing'
-  }
-
-  // Check constraint violation
-  if (errorCode === '23514') {
-    return 'Data validation failed'
-  }
-
-  // Generic fallback
-  return error.message || 'An unexpected error occurred'
-}
 
 // =====================================================
 // ROLE MANAGEMENT ACTIONS
@@ -77,7 +36,7 @@ export async function createRole(data: CreateRoleInput): Promise<{
 
     if (result.success) {
       revalidatePath('/settings')
-      revalidatePath(`/organization/${data.org_id}`)
+      revalidatePath(`/organizations/${data.org_id}`)
       return result
     }
 
@@ -123,7 +82,7 @@ export async function updateRole(id: string, data: UpdateRoleInput): Promise<{
 
     if (result.success && role?.org_id) {
       revalidatePath('/settings')
-      revalidatePath(`/organization/${role.org_id}`)
+      revalidatePath(`/organizations/${role.org_id}`)
       return result
     }
 
@@ -186,7 +145,7 @@ export async function deleteRole(id: string): Promise<{
 
     if (result.success && role?.org_id) {
       revalidatePath('/settings')
-      revalidatePath(`/organization/${role.org_id}`)
+      revalidatePath(`/organizations/${role.org_id}`)
       return result
     }
 
@@ -202,9 +161,10 @@ export async function deleteRole(id: string): Promise<{
 
 /**
  * Get all roles (system-wide and org-specific)
+ * @param orgId - Optional organization ID to filter roles
  * @returns Success result with roles array or error
  */
-export async function getAllRoles(): Promise<{
+export async function getAllRoles(orgId?: string): Promise<{
   success: boolean
   roles?: Role[]
   error?: string
@@ -219,19 +179,15 @@ export async function getAllRoles(): Promise<{
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Fetch all active roles (system-wide and org-specific)
-    const { data, error } = await supabase
-      .from('roles')
-      .select('*')
-      .is('deleted_at', null)
-      .order('name', { ascending: true })
+    // Use role service to fetch roles
+    const roleService = new RoleService(supabase)
+    const result = await roleService.getRoles(orgId)
 
-    if (error) {
-      console.error('Error fetching roles:', error)
+    if (!result.success) {
       return { success: false, error: 'Failed to fetch roles' }
     }
 
-    return { success: true, roles: data || [] }
+    return { success: true, roles: result.roles }
   } catch (error) {
     console.error('Unexpected error fetching roles:', error)
     return { success: false, error: 'An unexpected error occurred' }

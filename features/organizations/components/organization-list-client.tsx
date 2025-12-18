@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { OrganizationCard } from '@/features/organizations/components/organization-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,19 +15,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Plus, Building2 } from 'lucide-react'
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { toast } from 'sonner'
 import { createOrganization } from '@/features/organizations/organization-actions'
+import { Home } from 'lucide-react'
 
 interface OrganizationData {
   id: string
   name: string
   memberCount: number
   workspaceCount: number
+  isMember?: boolean
   invitation?: {
     invitationId: string
-    roleName: string
-    roleDescription: string | null
+    roleName?: string
+    roleDescription?: string | null
     expiresAt: string
   }
 }
@@ -79,50 +89,54 @@ export function OrganizationListClient({ organizations }: OrganizationListClient
   return (
     <>
       <div className="container mx-auto py-8 px-4 max-w-7xl">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Organizations</h1>
-            <p className="text-muted-foreground mt-2">
-              Select an organization to view its workspaces
-            </p>
-          </div>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Organization
-          </Button>
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">
+                  <Home className="h-4 w-4" />
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Organizations</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">Organizations</h1>
+          <p className="text-muted-foreground mt-2">
+            Select an organization to view its workspaces
+          </p>
         </div>
 
-        {/* All Organizations (with optional invitation attachments) */}
-        {organizations && organizations.length > 0 ? (
-          <div className="space-y-3">
-            {organizations.map((org) => (
-              <OrganizationCard
-                key={org.id}
-                id={org.id}
-                name={org.name}
-                memberCount={org.memberCount}
-                workspaceCount={org.workspaceCount}
-                isInvitation={!!org.invitation}
-                invitationId={org.invitation?.invitationId}
-                roleName={org.invitation?.roleName}
-                roleDescription={org.invitation?.roleDescription}
-                expiresAt={org.invitation?.expiresAt}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 border-2 border-dashed rounded-lg">
-            <Building2 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No organizations yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Get started by creating your first organization
-            </p>
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Organization
-            </Button>
-          </div>
-        )}
+        {/* Grid Layout with Create Card as First Item */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Create Organization Card */}
+          <OrganizationCard
+            variant="create"
+            onCreate={() => setDialogOpen(true)}
+          />
+
+          {/* All Organizations (with optional invitation attachments) */}
+          {organizations.map((org) => (
+            <OrganizationCard
+              key={org.id}
+              variant={org.invitation ? 'invitation' : 'default'}
+              id={org.id}
+              name={org.name}
+              memberCount={org.memberCount}
+              workspaceCount={org.workspaceCount}
+              invitationId={org.invitation?.invitationId}
+              roleName={org.invitation?.roleName}
+              roleDescription={org.invitation?.roleDescription}
+              expiresAt={org.invitation?.expiresAt}
+              isMember={org.isMember}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Create Organization Dialog */}

@@ -91,7 +91,7 @@ export async function createCustomerPortalSession() {
 
   // Set return URL to organization page
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-  const returnUrl = `${baseUrl}/organization/${organization.id}`
+  const returnUrl = `${baseUrl}/organizations/${organization.id}`
 
   const result = await createPortalSession({
     orgId: organization.id,

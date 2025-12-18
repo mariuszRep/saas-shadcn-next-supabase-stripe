@@ -1,11 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getSubscriptionByOrgId } from '@/services/subscription-service'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
-import Link from 'next/link'
 import { SubscriptionDetails } from '@/features/subscriptions/components/subscription-details'
 import { fetchStripePricing } from '@/config/stripe'
 
@@ -65,29 +62,6 @@ export default async function BillingPage(props: BillingPageProps) {
         )}
 
         <SubscriptionDetails subscription={subscription} planName={planName} />
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Access Control</CardTitle>
-            <CardDescription>
-              Test subscription-based access control for premium features
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Routes under /organization/[organizationId] require an active subscription to
-                access. The middleware automatically checks your subscription status and redirects
-                you here if your subscription is not active.
-              </p>
-              <Button asChild variant="outline">
-                <Link href={`/organization/${params.organizationId}/premium`}>
-                  Test Premium Access
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

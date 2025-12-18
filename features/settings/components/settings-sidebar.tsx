@@ -2,6 +2,8 @@
 
 import * as React from 'react'
 import { Building2, Folder, Shield, ChevronRight, UserCog, Users, Mail, Settings, User, CreditCard } from 'lucide-react'
+import { useParams, usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { NavSwitcher } from '@/components/layout/nav-switcher'
 import { NavUser } from '@/components/layout/nav-user'
 import {
@@ -35,23 +37,11 @@ export type AccountSubsection = 'profile' | 'security'
 interface SettingsSidebarProps extends React.ComponentProps<typeof Sidebar> {
   organizations: Organization[]
   selectedOrgId: string | null
-  onSelectOrg: (org: { id: string; name: string }) => void
-  activeSection: SettingsSection
-  onSectionChange: (section: SettingsSection) => void
-  activeSubsection?: AccessSubsection
-  onSubsectionChange?: (subsection: AccessSubsection) => void
-  activeGeneralSubsection?: GeneralSubsection
-  onGeneralSubsectionChange?: (subsection: GeneralSubsection) => void
-  activeSubscriptionSubsection?: SubscriptionSubsection
-  onSubscriptionSubsectionChange?: (subsection: SubscriptionSubsection) => void
-  activeAccountSubsection?: AccountSubsection
-  onAccountSubsectionChange?: (subsection: AccountSubsection) => void
   user: {
     name: string
     email: string
     avatar: string
   }
-  navigationDisabled?: boolean
 }
 
 const accessSubsections: { value: AccessSubsection; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -104,31 +94,80 @@ const accountSubsections: { value: AccountSubsection; label: string; icon: React
 export function SettingsSidebar({
   organizations,
   selectedOrgId,
-  onSelectOrg,
-  activeSection,
-  onSectionChange,
-  activeSubsection = 'permissions',
-  onSubsectionChange,
-  activeGeneralSubsection = 'profile',
-  onGeneralSubsectionChange,
-  activeSubscriptionSubsection = 'billing',
-  onSubscriptionSubsectionChange,
-  activeAccountSubsection = 'profile',
-  onAccountSubsectionChange,
   user,
-  navigationDisabled,
   ...sidebarProps
 }: SettingsSidebarProps) {
+  const pathname = usePathname()
+  const params = useParams()
+  const organizationId = params?.organizationId as string | undefined
+
+  // State for controlling which sections are open
+  const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({
+    general: false,
+    subscription: false,
+    access: false,
+    account: false,
+  })
+
+  // Determine active section and subsection from pathname
+  const getActiveState = () => {
+    if (!pathname || !organizationId) {
+      return { section: null, subsection: null }
+    }
+
+    if (pathname.includes('/settings/general')) {
+      return { section: 'general' as const, subsection: 'profile' as const }
+    }
+    if (pathname.includes('/settings/subscription/billing')) {
+      return { section: 'subscription' as const, subsection: 'billing' as const }
+    }
+    if (pathname.includes('/settings/workspaces')) {
+      return { section: 'workspaces' as const, subsection: null }
+    }
+    if (pathname.includes('/settings/access/permissions')) {
+      return { section: 'access' as const, subsection: 'permissions' as const }
+    }
+    if (pathname.includes('/settings/access/roles')) {
+      return { section: 'access' as const, subsection: 'roles' as const }
+    }
+    if (pathname.includes('/settings/access/invitations')) {
+      return { section: 'access' as const, subsection: 'invitations' as const }
+    }
+    if (pathname.includes('/settings/account/profile')) {
+      return { section: 'account' as const, subsection: 'profile' as const }
+    }
+    if (pathname.includes('/settings/account/security')) {
+      return { section: 'account' as const, subsection: 'security' as const }
+    }
+
+    return { section: null, subsection: null }
+  }
+
+  const { section: activeSection, subsection: activeSubsection } = getActiveState()
+
+  // Auto-open the active section when pathname changes
+  React.useEffect(() => {
+    if (activeSection && ['general', 'subscription', 'access', 'account'].includes(activeSection)) {
+      setOpenSections(prev => ({ ...prev, [activeSection]: true }))
+    }
+  }, [activeSection])
+
+  const handleSelectOrg = (org: { id: string; name: string }) => {
+    // Navigation handled by Link component in NavSwitcher
+  }
+
+  const navigationDisabled = !selectedOrgId
+
   return (
     <Sidebar collapsible="icon" {...sidebarProps}>
       <SidebarHeader>
         <NavSwitcher
           items={organizations}
           selectedId={selectedOrgId}
-          onSelect={onSelectOrg}
+          onSelect={handleSelectOrg}
           icon={Building2}
           label="Organization"
-          manageUrl="/organization"
+          manageUrl="/organizations"
         />
       </SidebarHeader>
       <SidebarContent>
@@ -138,12 +177,8 @@ export function SettingsSidebar({
             {/* General Section */}
             <Collapsible
               asChild
-              open={activeSection === 'general'}
-              onOpenChange={(open) => {
-                if (open && !navigationDisabled) {
-                  onSectionChange('general')
-                }
-              }}
+              open={openSections.general}
+              onOpenChange={(open) => setOpenSections(prev => ({ ...prev, general: open }))}
               className="group/collapsible"
             >
               <SidebarMenuItem>
@@ -162,20 +197,14 @@ export function SettingsSidebar({
                     {generalSubsections.map((subsection) => (
                       <SidebarMenuSubItem key={subsection.value}>
                         <SidebarMenuSubButton
-                          isActive={activeSection === 'general' && activeGeneralSubsection === subsection.value}
-                          onClick={() => {
-                            if (!navigationDisabled) {
-                              if (activeSection !== 'general') {
-                                onSectionChange('general')
-                              }
-                              onGeneralSubsectionChange?.(subsection.value)
-                            }
-                          }}
-                          aria-current={activeSection === 'general' && activeGeneralSubsection === subsection.value ? 'page' : undefined}
+                          asChild
+                          isActive={activeSection === 'general' && activeSubsection === subsection.value}
                           className={navigationDisabled ? 'pointer-events-none opacity-50' : ''}
                         >
-                          <subsection.icon className="h-4 w-4" />
-                          <span>{subsection.label}</span>
+                          <Link href={organizationId ? `/organizations/${organizationId}/settings/general/${subsection.value}` : '#'}>
+                            <subsection.icon className="h-4 w-4" />
+                            <span>{subsection.label}</span>
+                          </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}
@@ -187,12 +216,8 @@ export function SettingsSidebar({
             {/* Subscription Section */}
             <Collapsible
               asChild
-              open={activeSection === 'subscription'}
-              onOpenChange={(open) => {
-                if (open && !navigationDisabled) {
-                  onSectionChange('subscription')
-                }
-              }}
+              open={openSections.subscription}
+              onOpenChange={(open) => setOpenSections(prev => ({ ...prev, subscription: open }))}
               className="group/collapsible"
             >
               <SidebarMenuItem>
@@ -211,20 +236,14 @@ export function SettingsSidebar({
                     {subscriptionSubsections.map((subsection) => (
                       <SidebarMenuSubItem key={subsection.value}>
                         <SidebarMenuSubButton
-                          isActive={activeSection === 'subscription' && activeSubscriptionSubsection === subsection.value}
-                          onClick={() => {
-                            if (!navigationDisabled) {
-                              if (activeSection !== 'subscription') {
-                                onSectionChange('subscription')
-                              }
-                              onSubscriptionSubsectionChange?.(subsection.value)
-                            }
-                          }}
-                          aria-current={activeSection === 'subscription' && activeSubscriptionSubsection === subsection.value ? 'page' : undefined}
+                          asChild
+                          isActive={activeSection === 'subscription' && activeSubsection === subsection.value}
                           className={navigationDisabled ? 'pointer-events-none opacity-50' : ''}
                         >
-                          <subsection.icon className="h-4 w-4" />
-                          <span>{subsection.label}</span>
+                          <Link href={organizationId ? `/organizations/${organizationId}/settings/subscription/${subsection.value}` : '#'}>
+                            <subsection.icon className="h-4 w-4" />
+                            <span>{subsection.label}</span>
+                          </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}
@@ -236,26 +255,23 @@ export function SettingsSidebar({
             {/* Workspaces Section */}
             <SidebarMenuItem>
               <SidebarMenuButton
+                asChild
                 tooltip="Workspaces"
                 isActive={activeSection === 'workspaces'}
-                onClick={() => onSectionChange('workspaces')}
                 disabled={navigationDisabled}
-                aria-current={activeSection === 'workspaces' ? 'page' : undefined}
               >
-                <Folder />
-                <span>Workspaces</span>
+                <Link href={organizationId ? `/organizations/${organizationId}/settings/workspaces` : '#'}>
+                  <Folder />
+                  <span>Workspaces</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
             {/* Access Section with Collapsible Subsections */}
             <Collapsible
               asChild
-              open={activeSection === 'access'}
-              onOpenChange={(open) => {
-                if (open && !navigationDisabled) {
-                  onSectionChange('access')
-                }
-              }}
+              open={openSections.access}
+              onOpenChange={(open) => setOpenSections(prev => ({ ...prev, access: open }))}
               className="group/collapsible"
             >
               <SidebarMenuItem>
@@ -274,20 +290,14 @@ export function SettingsSidebar({
                     {accessSubsections.map((subsection) => (
                       <SidebarMenuSubItem key={subsection.value}>
                         <SidebarMenuSubButton
+                          asChild
                           isActive={activeSection === 'access' && activeSubsection === subsection.value}
-                          onClick={() => {
-                            if (!navigationDisabled) {
-                              if (activeSection !== 'access') {
-                                onSectionChange('access')
-                              }
-                              onSubsectionChange?.(subsection.value)
-                            }
-                          }}
-                          aria-current={activeSection === 'access' && activeSubsection === subsection.value ? 'page' : undefined}
                           className={navigationDisabled ? 'pointer-events-none opacity-50' : ''}
                         >
-                          <subsection.icon className="h-4 w-4" />
-                          <span>{subsection.label}</span>
+                          <Link href={organizationId ? `/organizations/${organizationId}/settings/access/${subsection.value}` : '#'}>
+                            <subsection.icon className="h-4 w-4" />
+                            <span>{subsection.label}</span>
+                          </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}
@@ -299,12 +309,8 @@ export function SettingsSidebar({
             {/* Account Section */}
             <Collapsible
               asChild
-              open={activeSection === 'account'}
-              onOpenChange={(open) => {
-                if (open && !navigationDisabled) {
-                  onSectionChange('account')
-                }
-              }}
+              open={openSections.account}
+              onOpenChange={(open) => setOpenSections(prev => ({ ...prev, account: open }))}
               className="group/collapsible"
             >
               <SidebarMenuItem>
@@ -323,20 +329,14 @@ export function SettingsSidebar({
                     {accountSubsections.map((subsection) => (
                       <SidebarMenuSubItem key={subsection.value}>
                         <SidebarMenuSubButton
-                          isActive={activeSection === 'account' && activeAccountSubsection === subsection.value}
-                          onClick={() => {
-                            if (!navigationDisabled) {
-                              if (activeSection !== 'account') {
-                                onSectionChange('account')
-                              }
-                              onAccountSubsectionChange?.(subsection.value)
-                            }
-                          }}
-                          aria-current={activeSection === 'account' && activeAccountSubsection === subsection.value ? 'page' : undefined}
+                          asChild
+                          isActive={activeSection === 'account' && activeSubsection === subsection.value}
                           className={navigationDisabled ? 'pointer-events-none opacity-50' : ''}
                         >
-                          <subsection.icon className="h-4 w-4" />
-                          <span>{subsection.label}</span>
+                          <Link href={organizationId ? `/organizations/${organizationId}/settings/account/${subsection.value}` : '#'}>
+                            <subsection.icon className="h-4 w-4" />
+                            <span>{subsection.label}</span>
+                          </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}

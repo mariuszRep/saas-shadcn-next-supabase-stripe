@@ -5,8 +5,10 @@ import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export default async function SubscriptionSuccessPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ organizationId: string }>
   searchParams: Promise<{ session_id?: string }>
 }) {
   const supabase = await createClient()
@@ -16,6 +18,7 @@ export default async function SubscriptionSuccessPage({
     redirect('/login')
   }
 
+  const { organizationId } = await params
   const { session_id } = await searchParams
 
   return (
@@ -56,7 +59,7 @@ export default async function SubscriptionSuccessPage({
 
         <div className="flex gap-4 justify-center">
           <Button asChild>
-            <Link href="/organization">Go to Dashboard</Link>
+            <Link href={`/organizations/${organizationId}/settings/subscription/billing`}>View Subscription Details</Link>
           </Button>
         </div>
 

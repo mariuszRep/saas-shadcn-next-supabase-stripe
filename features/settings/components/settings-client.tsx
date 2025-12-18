@@ -56,7 +56,7 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
   const selectedOrg = organizations.find(org => org.id === selectedOrgId)
 
   // Check if we're on an organization-specific settings page
-  const isOrgSpecificPage = pathname.includes('/organization/')
+  const isOrgSpecificPage = pathname.includes('/organizations/')
 
   // Single effect to sync all URL params and props with state
   React.useEffect(() => {
@@ -131,7 +131,7 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
     if (isOrgSpecificPage) {
       const params = new URLSearchParams(searchParams?.toString() || '')
       const queryString = params.toString()
-      const newPath = `/organization/${org.id}${queryString ? `?${queryString}` : ''}`
+      const newPath = `/organizations/${org.id}${queryString ? `?${queryString}` : ''}`
       router.push(newPath)
     }
   }
@@ -379,13 +379,13 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="/organization">
-                Organization
+              <BreadcrumbLink href="/organizations">
+                Organizations
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/organization/${selectedOrgId}`}>
+              <BreadcrumbLink href={`/organizations/${selectedOrgId}`}>
                 {selectedOrg?.name || 'Select Organization'}
               </BreadcrumbLink>
             </BreadcrumbItem>

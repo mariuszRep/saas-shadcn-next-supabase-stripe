@@ -40,6 +40,7 @@ export type Database = {
           created_by: string
           expires_at: string
           id: string
+          org_id: string
           status: Database["public"]["Enums"]["invitation_status"]
           updated_at: string
           updated_by: string | null
@@ -50,6 +51,7 @@ export type Database = {
           created_by: string
           expires_at: string
           id?: string
+          org_id: string
           status?: Database["public"]["Enums"]["invitation_status"]
           updated_at?: string
           updated_by?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           expires_at?: string
+          org_id?: string
           id?: string
           status?: Database["public"]["Enums"]["invitation_status"]
           updated_at?: string

@@ -77,7 +77,7 @@ export async function createWorkspace(organizationId: string, name: string): Pro
     const workspace = await workspaceService.createWorkspace(validation.data, user.id)
 
     // Revalidate the path to refresh data
-    revalidatePath(`/organization/${organizationId}`)
+    revalidatePath(`/organizations/${organizationId}`)
 
     return { success: true, workspace }
   } catch (error) {
